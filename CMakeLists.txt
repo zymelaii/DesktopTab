@@ -2,76 +2,54 @@ cmake_minimum_required(VERSION 3.5)
 
 project(DesktopTab VERSION 0.1 LANGUAGES CXX)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(QT NAMES Qt6)
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
+
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
-
 add_subdirectory(3rdparty/QHotkey-1.5.0)
 
-set(RC_FILES
-    "assets/main.qrc"
-    "assets/app.rc"
+aux_source_directory(. SOURCE_FILES)
+file(GLOB RC_FILES assets/*.*rc)
+
+qt_add_executable(
+	${PROJECT_NAME}
+	MANUAL_FINALIZATION
+	${SOURCE_FILES} ${HEADER_FILES} ${RC_FILES}
 )
 
-set(PROJECT_SOURCES
-        ${RC_FILES}
-        main.cpp
-        calloutpanel.cpp
-        calloutpanel.h
-        mainpanel.cpp
-        mainpanel.h
-        tabpanel.cpp
-        tabpanel.h
-        utils.h
+target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
 )
 
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(DesktopTab
-        MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
-    )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET DesktopTab APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
-else()
-    if(ANDROID)
-        add_library(DesktopTab SHARED
-            ${PROJECT_SOURCES}
-        )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
-    else()
-        add_executable(DesktopTab
-            ${PROJECT_SOURCES}
-        )
-    endif()
-endif()
-
-target_link_libraries(DesktopTab PRIVATE
-    Qt${QT_VERSION_MAJOR}::Widgets
-    QHotkey::QHotkey
+target_link_libraries(
+    ${PROJECT_NAME}
+    PRIVATE Qt6::Widgets
+    PRIVATE QHotkey::QHotkey
 )
 
-set_target_properties(DesktopTab PROPERTIES
-    MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
+qt_finalize_executable(${PROJECT_NAME})
+
+set_target_properties(
+    ${PROJECT_NAME}
+    PROPERTIES WIN32_EXECUTABLE TRUE
 )
 
-install(TARGETS DesktopTab
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+include(GNUInstallDirs)
 
-if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(DesktopTab)
-endif()
+install(
+    TARGETS ${PROJECT_NAME}
+    EXPORT ${PROJECT_NAME}Targets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
